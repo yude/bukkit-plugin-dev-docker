@@ -1,0 +1,47 @@
+version: '3.9'
+
+services:
+
+  # PaperMC
+  paper:
+    image: ghcr.io/sksat/papermc-docker:renovate-openjdk-19.x-1.18.2-R0.1-SNAPSHOT-e7d928a-19-slim
+    restart: always
+    stdin_open: true
+    environment:
+      JAVA_TOOL_OPTIONS: "-Xms1G -Xmx2G"
+    volumes:
+      - ./paper:/app
+    depends_on:
+      - "db"
+
+  # cloudflared daemon
+  cloudflared:
+    image: cloudflare/cloudflared:2022.3.4-amd64
+    user: root
+    command: tunnel
+    environment:
+      - TUNNEL_HOSTNAME=dev.yude.jp
+      - TUNNEL_URL=http://paper:8080
+      - TUNNEL_ORIGIN_CERT=/root/.cloudflared/cert.pem
+    volumes:
+      - '$HOME/.cloudflared:/root/.cloudflared'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    depends_on:
+      - "paper"
+
+  # MariaDB
+  db:
+    restart: unless-stopped
+    image: mariadb:10.5
+    volumes:
+      - ./db/data:/val/lib/mysql
+      - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./db/sql:/docker-entrypoint-initdb.d
+      - ./db/log:/val/log/mysql
+      - ./db/init:/docker-entrypoint-initdb.d
+    environment:
+        TZ: 'Asia/Tokyo'
+        MARIADB_ROOT_PASSWORD: 'root'
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
