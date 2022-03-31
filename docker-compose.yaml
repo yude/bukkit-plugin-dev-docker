@@ -9,6 +9,8 @@ services:
     stdin_open: true
     environment:
       JAVA_TOOL_OPTIONS: "-Xms1G -Xmx2G"
+    ports:
+      - "25565:25565"
     volumes:
       - ./paper:/app
     depends_on:
